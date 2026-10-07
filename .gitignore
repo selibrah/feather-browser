@@ -1,0 +1,4 @@
+/target
+sessions.db
+sessions.db-journal
+.DS_Store

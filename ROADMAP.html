@@ -1,0 +1,983 @@
+<title>Rebuilding Feather</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;450;500;600&display=swap">
+<style>
+  :root {
+    --ground:      #eff1f4;
+    --surface:     #ffffff;
+    --surface-2:   #e4e7ec;
+    --ink:         #13161c;
+    --ink-2:       #454c59;
+    --ink-3:       #737b8a;
+    --rule:        #d2d7df;
+    --rule-strong: #b3bac5;
+    --accent:      #1f3aa8;
+    --accent-soft: #e3e8f7;
+    --signal:      #8f5406;
+    --signal-soft: #f7eeda;
+    --signal-rule: #dcc08a;
+    --good:        #1b6647;
+    --bad:         #9e2b24;
+    --warn:        #8a6512;
+
+    --f-display: "IBM Plex Sans Condensed", "Helvetica Neue", Arial, sans-serif;
+    --f-body:    "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --f-mono:    "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0f1218;
+      --surface:     #161a21;
+      --surface-2:   #1e232c;
+      --ink:         #e6eaf1;
+      --ink-2:       #a6afbd;
+      --ink-3:       #78818f;
+      --rule:        #29303a;
+      --rule-strong: #3a4250;
+      --accent:      #90a6ff;
+      --accent-soft: #1a2140;
+      --signal:      #dfa44c;
+      --signal-soft: #2a2114;
+      --signal-rule: #55421f;
+      --good:        #5cbb8d;
+      --bad:         #e28a82;
+      --warn:        #cfa44d;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #0f1218;
+    --surface:     #161a21;
+    --surface-2:   #1e232c;
+    --ink:         #e6eaf1;
+    --ink-2:       #a6afbd;
+    --ink-3:       #78818f;
+    --rule:        #29303a;
+    --rule-strong: #3a4250;
+    --accent:      #90a6ff;
+    --accent-soft: #1a2140;
+    --signal:      #dfa44c;
+    --signal-soft: #2a2114;
+    --signal-rule: #55421f;
+    --good:        #5cbb8d;
+    --bad:         #e28a82;
+    --warn:        #cfa44d;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 40px 28px 88px;
+    display: flex;
+    flex-direction: column;
+    gap: 44px;
+  }
+
+  /* ---------- shared type ---------- */
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  h1 {
+    font-family: var(--f-display);
+    font-weight: 700;
+    font-size: clamp(38px, 6vw, 58px);
+    line-height: 1.02;
+    letter-spacing: -0.015em;
+    margin: 10px 0 0;
+    text-wrap: balance;
+  }
+  h2 {
+    font-family: var(--f-display);
+    font-weight: 700;
+    font-size: 24px;
+    letter-spacing: -0.005em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  h3 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: 19px;
+    margin: 0;
+    text-wrap: balance;
+  }
+  p { margin: 0; max-width: 68ch; }
+  code, .mono { font-family: var(--f-mono); font-size: 0.88em; }
+  code {
+    background: var(--surface-2);
+    padding: 0.1em 0.34em;
+    border-radius: 2px;
+    color: var(--ink-2);
+  }
+  a { color: var(--accent); }
+
+  /* ---------- masthead ---------- */
+  .masthead { display: flex; flex-direction: column; gap: 20px; }
+  .lede {
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    max-width: 62ch;
+  }
+  .lede strong { color: var(--ink); font-weight: 600; }
+
+  .readout {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    border-top: 1px solid var(--rule-strong);
+    border-bottom: 1px solid var(--rule-strong);
+  }
+  .readout div {
+    padding: 13px 16px 13px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .readout dt {
+    font-family: var(--f-mono);
+    font-size: 10px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .readout dd {
+    margin: 0;
+    font-family: var(--f-mono);
+    font-size: 19px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .readout dd small {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ink-3);
+    letter-spacing: 0;
+  }
+  .v-bad  { color: var(--bad); }
+  .v-good { color: var(--good); }
+
+  /* ---------- the fork ---------- */
+  .fork { display: flex; flex-direction: column; gap: 18px; }
+  .fork-note {
+    border-left: 3px solid var(--accent);
+    padding-left: 16px;
+    color: var(--ink-2);
+  }
+  .lanes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+  }
+  .lane {
+    background: var(--surface);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+  }
+  .lane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .verdict {
+    font-family: var(--f-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    white-space: nowrap;
+  }
+  .verdict.take { background: var(--accent-soft); color: var(--accent); }
+  .verdict.defer { background: var(--surface-2); color: var(--ink-3); }
+  .lane p { font-size: 14px; color: var(--ink-2); }
+  .lane ul { margin: 0; padding-left: 17px; font-size: 13.5px; color: var(--ink-2); }
+  .lane li { margin-bottom: 4px; }
+  .lane li::marker { color: var(--ink-3); }
+
+  /* ---------- phase ledger ---------- */
+  .ledger { display: flex; flex-direction: column; }
+  .phase {
+    display: grid;
+    grid-template-columns: 132px 1fr;
+    gap: 28px;
+    padding: 30px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .phase:first-of-type { border-top: 2px solid var(--rule-strong); }
+  .phase.optional { opacity: 0.86; }
+
+  .rail { display: flex; flex-direction: column; gap: 7px; }
+  .rail .code {
+    font-family: var(--f-mono);
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .phase.optional .rail .code { color: var(--ink-3); }
+  .rail .dur {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .rail .tag.shipped {
+    color: var(--good);
+    border-color: var(--good);
+  }
+  .phase.shipped .rail .code { color: var(--good); }
+  .rail .tag {
+    font-family: var(--f-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    border: 1px solid var(--rule-strong);
+    padding: 2px 5px;
+    align-self: flex-start;
+  }
+
+  .body { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .subtitle { color: var(--ink-2); font-size: 15px; }
+  .work { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+  .work li { color: var(--ink-2); font-size: 14.5px; }
+  .work li::marker { color: var(--rule-strong); }
+  .work b { color: var(--ink); font-weight: 600; }
+
+  .yield {
+    background: var(--signal-soft);
+    border-top: 2px solid var(--signal);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .yield .eyebrow { color: var(--signal); }
+  .yield p { font-size: 15px; color: var(--ink); max-width: 66ch; }
+
+  .check {
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    color: var(--ink-3);
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+  }
+  .check span:first-child { color: var(--ink-2); white-space: nowrap; }
+
+  /* ---------- matrix ---------- */
+  .matrix-wrap { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 660px; }
+  caption { text-align: left; padding: 14px 16px 0; color: var(--ink-3); font-size: 13px; }
+  th, td { padding: 11px 12px; text-align: center; border-bottom: 1px solid var(--rule); }
+  thead th {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 600;
+    border-bottom: 1px solid var(--rule-strong);
+  }
+  tbody th {
+    text-align: left;
+    font-family: var(--f-body);
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  tbody tr:last-child th, tbody tr:last-child td { border-bottom: none; }
+  th.now, td.now { background: var(--surface-2); }
+
+  .pip {
+    display: inline-block;
+    width: 13px; height: 13px;
+    border: 1.5px solid var(--rule-strong);
+    vertical-align: -1px;
+  }
+  .pip.done    { background: var(--good); border-color: var(--good); }
+  .pip.partial { background: linear-gradient(90deg, var(--warn) 50%, transparent 50%); border-color: var(--warn); }
+  .pip.broken  { border-color: var(--bad); background: var(--bad); border-radius: 50%; }
+  .pip.none    { background: transparent; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    padding: 12px 16px;
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    color: var(--ink-3);
+    border-top: 1px solid var(--rule);
+  }
+  .legend span { display: flex; align-items: center; gap: 7px; }
+
+  /* ---------- end state ---------- */
+  .endstate {
+    border: 1px solid var(--rule-strong);
+    background: var(--surface);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+  .endstate > div {
+    padding: 22px;
+    border-right: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .endstate > div:last-child { border-right: none; }
+  .endstate h3 { font-size: 17px; }
+  .endstate p { font-size: 14px; color: var(--ink-2); }
+  .spec {
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    color: var(--ink-2);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .spec b { color: var(--ink); font-weight: 600; }
+
+  .cut {
+    border-left: 3px solid var(--bad);
+    padding-left: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .cut p { color: var(--ink-2); font-size: 14.5px; }
+
+  .section { display: flex; flex-direction: column; gap: 16px; }
+  .section > .eyebrow { margin-bottom: -6px; }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 18px;
+    font-family: var(--f-mono);
+    font-size: 12px;
+    color: var(--ink-3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+  }
+
+  @media (max-width: 620px) {
+    .phase { grid-template-columns: 1fr; gap: 14px; }
+    .rail { flex-direction: row; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .sheet { padding: 28px 18px 60px; gap: 36px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="sheet">
+
+  <header class="masthead">
+    <div class="eyebrow">FeatherBrowser · engine plan · rev 2</div>
+    <h1>Rebuilding Feather</h1>
+    <p class="lede">
+      The tab-suspension engine works and is well tested. The three privacy subsystems do not run at all —
+      not because they were written badly, but because <strong>wry 0.47 exposes no hook for subresource
+      requests</strong>, which is the layer all three were designed to sit on. This plan fixes that with the
+      cheapest mechanism that actually works, then builds outward until Feather is something you can browse
+      with for a day.
+    </p>
+
+    <dl class="readout">
+      <div><dt>Rust source</dt><dd>4,049 <small>lines · was 3,098</small></dd></div>
+      <div><dt>Tests</dt><dd class="v-good">36 <small>passing · was 22</small></dd></div>
+      <div><dt>Clippy</dt><dd class="v-good">0 <small>warnings</small></dd></div>
+      <div><dt>Filter rules</dt><dd class="v-good">107,987 <small>was 19 hardcoded</small></dd></div>
+      <div><dt>Subresources</dt><dd class="v-good">blocked <small>was not blocked</small></dd></div>
+      <div><dt>At rest</dt><dd class="v-good">189 <small>MB · was unmeasured</small></dd></div>
+    </dl>
+  </header>
+
+  <section class="fork section">
+    <div class="eyebrow">The one decision that sets everything else</div>
+    <h2>How the network layer gets intercepted</h2>
+    <p class="fork-note">
+      <code>adblock::Engine</code> is currently consulted only from <code>with_navigation_handler</code>, so it
+      sees top-level navigations and nothing else. Every ad, beacon and tracker a page loads passes straight
+      through. wry 0.47.2 offers exactly three network-adjacent hooks — <code>with_custom_protocol</code>,
+      <code>with_asynchronous_custom_protocol</code>, and <code>with_proxy_config</code>. None of them
+      intercepts an ordinary <code>https://</code> subresource. There are two ways out.
+    </p>
+
+    <div class="lanes">
+      <div class="lane">
+        <div class="lane-head">
+          <h3>Lane A — WebKit content rules</h3>
+          <span class="verdict take">Take this</span>
+        </div>
+        <p>
+          Compile the filter lists into WebKit's own content-blocking JSON and hand them to
+          <code>WKContentRuleListStore</code> through an objc2 bridge on the webview handle. Blocking then
+          happens inside WebKit's network stack — the same mechanism Safari content blockers use.
+        </p>
+        <ul>
+          <li>The <code>adblock</code> crate you already depend on ships the converter: feature
+              <code>content-blocking</code> in 0.8.12 emits exactly this syntax.</li>
+          <li>Zero per-request Rust cost, no certificate, no MITM, nothing in the trust store.</li>
+          <li>Ceiling: block, block-cookies, hide-element, force-HTTPS. It cannot rewrite a query string.</li>
+        </ul>
+      </div>
+
+      <div class="lane">
+        <div class="lane-head">
+          <h3>Lane B — loopback MITM proxy</h3>
+          <span class="verdict defer">Defer</span>
+        </div>
+        <p>
+          Run hyper + rustls on 127.0.0.1 behind a generated local CA and point the webview at it with
+          <code>with_proxy_config</code>. Total control of every byte: block, strip params, substitute bodies,
+          upgrade scheme.
+        </p>
+        <ul>
+          <li>Costs a CA installed in the system trust store — a genuine security surface, and a UX cliff on
+              first run.</li>
+          <li>You inherit TLS termination, cert-error handling, and per-platform trust plumbing forever.</li>
+          <li>Buys one thing Lane A lacks: query-param stripping on subresources, where trackers are rarest.</li>
+        </ul>
+      </div>
+    </div>
+
+    <p>
+      Lane A delivers most of the privacy value for roughly a fifth of the work and none of the risk. Tracking
+      parameters still get stripped where they actually appear — top-level navigations — by the repaired
+      <code>UrlCleaner</code> in Phase 0. Lane B stays on the shelf as Phase 6, gated behind evidence.
+    </p>
+  </section>
+
+  <section class="section">
+    <div class="eyebrow">Six phases · roughly 11–16 working days to a daily driver</div>
+    <h2>The ledger</h2>
+
+    <div class="ledger">
+
+      <!-- PHASE 0 -->
+      <article class="phase shipped">
+        <div class="rail">
+          <div class="code">00</div>
+          <div class="dur">½–1 day</div>
+          <div class="tag shipped">Shipped</div>
+        </div>
+        <div class="body">
+          <h3>Repair</h3>
+          <p class="subtitle">Three live defects and 128 lines of code that can only do harm.</p>
+          <ul class="work">
+            <li><b>Re-encode cleaned URLs.</b> <code>clean_url</code> decodes query pairs and reassembles them
+                raw, so <code>redirect_uri=https%3A%2F%2F…</code> comes back out as a literal <code>?</code> and
+                <code>&amp;</code>. Every OAuth login it touches breaks. Swap the hand-rolled builder for
+                <code>query_pairs_mut().clear().extend_pairs(…)</code>, which encodes on write.</li>
+            <li><b>Apply the cleaned URL.</b> The navigation handler computes <code>cleaned</code>, uses it for
+                the block test, then returns <code>true</code> and lets the original load. Tracking params
+                survive every link click.</li>
+            <li><b>Fix the tab-id stamp.</b> <code>create_tab</code> guesses <code>total_tab_count() + 1</code>
+                while the store hands out a monotonic id — they diverge the moment a tab closes, and scroll and
+                title updates land on the wrong tab. Expose <code>peek_next_id()</code>.</li>
+            <li><b>Stop bionic mode injecting HTML.</b> <code>span.innerHTML = transformed</code> turns any page
+                that displays escaped markup as text into live DOM. Build <code>&lt;b&gt;</code> nodes with
+                <code>createElement</code>.</li>
+            <li><b>Delete <code>local_cdn.rs</code> and the four bundled assets.</b> Nothing in the codebase ever
+                mints a <code>feather-cdn://</code> URL, so the module cannot run — and the assets are stubs, not
+                libraries. The bundled "React 18.3.1" is 1.2 KB whose <code>useState</code> setter is
+                <code>function() {}</code>.</li>
+            <li><b>Version the repo.</b> <code>git init</code>, a <code>.gitignore</code> for
+                <code>target/</code>, <code>sessions.db</code> and <code>.DS_Store</code>, and a README whose
+                claims match the binary.</li>
+          </ul>
+          <div class="yield">
+            <div class="eyebrow">At the end of phase 00</div>
+            <p>
+              Logins, searches and signed URLs survive the address bar. Tracking parameters are stripped from
+              link clicks, not just typed input. Tab state lands on the tab it came from. Bionic mode can no
+              longer execute a page's text. The local CDN and its four counterfeit libraries are gone, and the
+              project is under version control with a README whose claims match the binary.
+            </p>
+          </div>
+          <div class="check"><span>Result →</span><span>367 lines net removed · 22 tests passing · clippy clean · 5 new regression tests</span></div>
+        </div>
+      </article>
+
+      <!-- PHASE 1 -->
+      <article class="phase shipped">
+        <div class="rail">
+          <div class="code">01</div>
+          <div class="dur">2–3 days</div>
+          <div class="tag shipped">Shipped</div>
+        </div>
+        <div class="body">
+          <h3>The ad blocker actually blocks</h3>
+          <p class="subtitle">Lane A, wired end to end.</p>
+          <ul class="work">
+            <li><b>Build step.</b> Fetch EasyList and EasyPrivacy, parse with <code>adblock</code>, convert with
+                the <code>content-blocking</code> feature, cache the compiled rule list on disk keyed by the
+                source-list hash so startup never pays for it twice.</li>
+            <li><b>Platform bridge.</b> <code>src/platform/macos.rs</code> — objc2 call into
+                <code>WKContentRuleListStore.compileContentRuleList</code>, attach the result to each webview's
+                <code>WKUserContentController</code> at build time.</li>
+            <li><b>Keep the Rust engine for navigations.</b> It is already correct there; it just was never the
+                whole story.</li>
+            <li><b>Surface it in the topbar.</b> The feature is invisible otherwise, and invisible features get
+                quietly regressed. A per-request tally turned out to be unbuildable — WebKit's rule engine
+                blocks inside its networking layer and reports nothing back to the host — so the shield shows
+                the live rule count and lights up when the lists are attached. A "requests blocked" number here
+                would have been invented.</li>
+          </ul>
+          <div class="yield">
+            <div class="eyebrow">At the end of phase 01</div>
+            <p>
+              Ads and trackers are blocked on every subresource a page loads, inside WebKit's networking layer,
+              against 107,987 real EasyList and EasyPrivacy rules instead of 19 hand-typed domains. The topbar
+              shield lights up with the rule count once WebKit has them. This is the phase where the project's
+              headline claim becomes true.
+            </p>
+            <p>
+              One thing the plan got wrong: a single rule list could not hold the lists. The first cut capped at
+              50,000 rules and dropped the overflow — which, because EasyPrivacy sorts last, quietly discarded
+              almost the entire tracker list. The rules are now split into chunks of 25,000 and handed to WebKit
+              as five lists, which <code>WKUserContentController</code> accepts without complaint. Nothing is
+              dropped.
+            </p>
+          </div>
+          <div class="check"><span>Verified →</span><span>a probe page fetching a live ad script, a live tracker and a control URL: before the rules attach all three reach the network; after, the ad and tracker fail while the control still 404s. 107,987 rules · 28 tests · clippy clean</span></div>
+        </div>
+      </article>
+
+      <!-- PHASE 2 -->
+      <article class="phase shipped">
+        <div class="rail">
+          <div class="code">02</div>
+          <div class="dur">2 days</div>
+          <div class="tag shipped">Shipped</div>
+        </div>
+        <div class="body">
+          <h3>Sessions that survive</h3>
+          <p class="subtitle">The SQLite layer writes faithfully and is never read. Make it real.</p>
+          <ul class="work">
+            <li><b>Stable ids.</b> <code>next_id</code> restarts at 1 every launch, so a new session's tab 1
+                upserts over the last session's tab 1. Persist the counter, or switch to UUIDs.</li>
+            <li><b>Restore on boot.</b> <code>load_snapshots_from_db</code> is called from nothing but tests.
+                Rebuild the tab tree at startup and rehydrate each dormant tab lazily on first focus.</li>
+            <li><b>Delete rows on close</b>, so the table reflects what is open rather than everything that was
+                ever dormant. Not on rehydrate, though — see below.</li>
+            <li><b>Move the database</b> out of the working directory into the platform data dir — today the
+                session you get depends on where you launched the binary from.</li>
+            <li><b>Capture form state.</b> The <code>form_data</code> column, the struct field and the spec
+                requirement all exist; nothing ever writes them.</li>
+          </ul>
+          <div class="yield">
+            <div class="eyebrow">At the end of phase 02</div>
+            <p>
+              Kill the process and reopen it: every tab is back, hibernated, at the scroll position it had, with
+              half-finished form fields intact and the tree hierarchy preserved. Hibernation stops being a memory
+              trick and becomes the thing that makes 40 open tabs survivable — a restored session renders exactly
+              one WebView, the tab that was in front, no matter how many tabs it holds.
+            </p>
+            <p>
+              Two departures from the plan. The snapshot table is now the <em>session</em>, not the dormant set:
+              every open tab is written, because a tab that was still live when the process died has to come back
+              too — which is also why rows are not deleted on rehydrate, only on close. And form contents cannot
+              be collected at suspension time, since hibernating means dropping the WebView synchronously and
+              there is no moment left to ask the page anything. The page volunteers its fields with the state
+              report it already sends on scroll, and the host persists the last thing it heard. Passwords, hidden
+              fields and <code>autocomplete="off"</code> are never collected, and a navigation drops what was
+              typed so it cannot be replayed into an unrelated page with the same field names.
+            </p>
+          </div>
+          <div class="check"><span>Verified →</span><span>three launches against one database: tabs, ids, tree and scroll survive; a page that retypes its own field on every load still ends up holding the value from the <em>previous</em> session, while the password field never reaches the database. 30 tests · clippy clean</span></div>
+        </div>
+      </article>
+
+      <!-- PHASE 3 -->
+      <article class="phase shipped">
+        <div class="rail">
+          <div class="code">03</div>
+          <div class="dur">1–2 days</div>
+          <div class="tag shipped">Shipped</div>
+        </div>
+        <div class="body">
+          <h3>A ceiling you can prove</h3>
+          <p class="subtitle">Replace the 120 MB claim with a measurement.</p>
+          <ul class="work">
+            <li><b>Instrument RSS</b> via <code>mach_task_basic_info</code>, exposed behind a
+                <code>--profile</code> flag — plus the WebKit processes, which is where the memory actually
+                is. <code>WKWebView</code> renders out of process and the XPC services are reparented to
+                launchd, so they are neither visible to <code>task_info</code> nor our children. Measuring only
+                the engine would have produced a flattering number that meant nothing.</li>
+            <li><b>Derive the ceiling</b> from available RAM with a configurable cap, instead of a hardcoded
+                <code>MAX_ACTIVE_VIEWS = 2</code>. Two live views is punitive on a 64 GB machine and may still be
+                one too many on 8 GB.</li>
+            <li><b>Bench harness.</b> Open N tabs from a fixed URL set, sample RSS at each step, emit a table —
+                the self-profiling summary the original spec asked for and never got.</li>
+          </ul>
+          <div class="yield">
+            <div class="eyebrow">At the end of phase 03</div>
+            <p>
+              A real number in the README with the method next to it, and a ceiling that adapts to the machine
+              it runs on. Memory discipline is the entire reason this project exists rather than being another
+              Electron shell — so it should be the best-instrumented part of the codebase, not the only
+              unmeasured one.
+            </p>
+            <p>
+              The curve is the thesis, and it holds: on an 18 GB machine the ceiling comes out at four live
+              views, and total memory climbs to 822 MB at six tabs and then <em>falls</em> to 577 MB at ten,
+              because the extra tabs are hibernated rather than rendered. Ten tabs cost less than six.
+            </p>
+            <p>
+              It also cost the original spec's headline claim. Under 120 MB with five tabs was never true:
+              five tabs cost about 760 MB all in. What is true — and now measured rather than asserted — is
+              that the number stops growing.
+            </p>
+            <p>
+              And the instrumentation immediately paid for itself. The engine process was sitting at
+              <b>327 MB before a single page loaded</b>. Converting EasyList to WebKit's format allocates
+              several hundred megabytes that the allocator never hands back, and it was happening on every
+              launch. WebKit already keeps compiled lists in its own store, so a manifest of identifiers now
+              lets a warm launch ask for them directly without touching a filter list: baseline
+              <b>326.9 MB → 96.4 MB</b>. It also closed the startup window from phase 01 — rules now attach
+              before the first page finishes loading.
+            </p>
+          </div>
+          <div class="check"><span>Verified →</span><span><code>--bench=10</code> on an 18 GB machine, release build, real pages: 188.8 MB at rest, 681.9 MB at four tabs, 577.1 MB at ten. 31 tests · clippy clean</span></div>
+        </div>
+      </article>
+
+      <!-- PHASE 4 -->
+      <article class="phase shipped">
+        <div class="rail">
+          <div class="code">04</div>
+          <div class="dur">2 days</div>
+          <div class="tag shipped">Shipped</div>
+        </div>
+        <div class="body">
+          <h3>A runtime that behaves</h3>
+          <p class="subtitle">Today <code>runtime.js</code> takes ownership of every page it lands on.</p>
+          <ul class="work">
+            <li><b>Vim keys become opt-in.</b> Bare <code>t</code>, <code>x</code>, <code>f</code> and
+                <code>o</code> are <code>preventDefault</code>ed globally, so typing on GitHub opens tabs. Gate
+                behind a toggle, default off, with a per-origin denylist. Extend <code>isEditable</code> to
+                <code>role="combobox"</code>, <code>role="searchbox"</code> and shadow roots.</li>
+            <li><b>Throttle the consent observer.</b> It runs 16 <code>querySelectorAll</code> sweeps of the whole
+                document on <em>every</em> DOM mutation — thousands of full scans a second on a React app. One
+                <code>requestAnimationFrame</code> pass with a dirty flag. Drop
+                <code>[aria-label*="cookie" i]</code>, which deletes real content on any page that discusses
+                cookies.</li>
+            <li><b>Teach it about SPAs.</b> Patch <code>pushState</code>/<code>replaceState</code> and listen for
+                <code>popstate</code>. Right now a single-page app's title never reaches the tab strip and its
+                snapshot rehydrates to the wrong URL.</li>
+            <li><b>Persist dark mode per origin</b> in SQLite and reapply on load, instead of losing it at every
+                navigation.</li>
+          </ul>
+          <div class="yield">
+            <div class="eyebrow">At the end of phase 04</div>
+            <p>
+              Feather stops fighting the pages it renders. Site keyboard shortcuts work, heavy apps stop
+              stuttering, tab titles track SPA navigation, and dark mode remembers the sites you asked it for.
+            </p>
+            <p>
+              The gate came out as per-site opt-in rather than a global switch with a denylist — strictly safer,
+              since a site is silent until you press the ⌨ button on it, and the two mechanisms would have
+              needed the same storage anyway. That storage is a <code>site_prefs</code> table keyed by origin,
+              which dark mode uses too. The page asks the host for its preferences rather than the host pushing
+              them, because a tab's origin changes under the host on every link click and every SPA route, and
+              the page is the side that knows when.
+            </p>
+            <p>
+              The throttle turned out to be hiding a second bug: the sweep forced
+              <code>overflow: auto</code> and <code>position: static</code> on <code>&lt;body&gt;</code> every
+              time it ran, whether or not it had removed anything — overriding the layout of every page that
+              never had a banner. It now only does that after actually removing one.
+            </p>
+          </div>
+          <div class="check"><span>Verified →</span><span>a probe page in the running browser: bare keys reach the page by default; once opted in they scroll the body but not a combobox, a contenteditable or an input inside a shadow root; 1,000 DOM mutations cost <b>1</b> document sweep instead of 16,000; a banner is removed while text that merely mentions cookies survives; a <code>replaceState</code> route and title reach both the history table and the tab snapshot; dark mode set on one visit is on at the next launch. 33 tests · clippy clean</span></div>
+        </div>
+      </article>
+
+      <!-- PHASE 5 -->
+      <article class="phase shipped">
+        <div class="rail">
+          <div class="code">05</div>
+          <div class="dur">1 day</div>
+          <div class="tag shipped">Shipped</div>
+        </div>
+        <div class="body">
+          <h3>The things that make it a browser</h3>
+          <p class="subtitle">Mostly UI over what WKWebView already does. Cheap, and the difference between a demo and a tool.</p>
+          <ul class="work">
+            <li><b>Per-tab back and forward</b> — history exists in the webview; it has no keybinding and no button.</li>
+            <li><b>Find in page</b>, <b>zoom</b>, and a <b>context menu</b> with open-in-new-tab and copy-link.</li>
+            <li><b>Downloads</b> with a destination prompt and a visible progress row.</li>
+            <li><b>Favicons in the tab strip</b> — at 90 px per tab, a globe emoji on every tab is unreadable past four.</li>
+            <li><b>Bookmarks</b> reusing the history table and the omnibar ranking already written in <code>search.rs</code>.</li>
+            <li><b>Link-hover status</b>, so you can see where a link goes before you commit to it.</li>
+          </ul>
+          <div class="yield">
+            <div class="eyebrow">At the end of phase 05</div>
+            <p>
+              A browser you can use for a full day without reaching for Safari — and the point at which the
+              hibernation engine stops being a demo and starts paying you back, because you finally have enough
+              tabs open for it to matter.
+            </p>
+            <p>
+              Back and forward are <code>history.back()</code> in the page rather than a platform call, which
+              costs nothing and works on every target. Zoom is wry's <code>zoom()</code>, held per tab in memory
+              and not persisted. Downloads use wry's two handlers with a real <code>NSSavePanel</code> run
+              modally from inside WebKit's own download callback — which is also where the one real bug of this
+              phase was: <code>WKDownload</code> refuses a destination that already exists, so confirming
+              "replace" in the panel produced a download that failed with <em>cancelled</em> and no explanation.
+              The panel's answer is now honoured by removing the file before returning.
+            </p>
+            <p>
+              Find-in-page was the interesting one. <code>window.find</code> searches the rendered document,
+              which includes the query field you are typing into — a bar built the obvious way reports a match
+              for any string, because the string is on screen. The bar now lives in a shadow root, which
+              <code>window.find</code> does not walk. It also takes no focus at all: a focused field owns the
+              document selection, and <code>window.find</code> resumes from the selection, so stepping between
+              matches only works while the matches themselves hold it. The cost is a query field with no caret,
+              no paste and no IME.
+            </p>
+            <p>
+              Two departures from the plan. Favicons come from each site's <code>/favicon.ico</code> rather than
+              the <code>&lt;link rel=icon&gt;</code> the page declares — three of four real sites answer, and the
+              fourth keeps the globe. Bookmarks are a flag on the history table rather than a table of their
+              own, which is what "reusing the history table" turned out to mean literally: one column, one
+              <code>ORDER BY</code>, and starring a page you have never visited creates the row.
+            </p>
+          </div>
+          <div class="check"><span>Verified →</span><span>a probe page in the running browser: find steps forward and backward between two matches 2,700 px apart and types while a page text field has focus, without touching it; a string present only inside the query field is reported as <b>no match</b>; right-click on a link suppresses WebKit's menu and offers two items, right-click on text does not; hovering a link shows its target and leaving hides it; <code>pushState</code> ×2 then back, forward and <code>go(-2)</code> all land correctly; two zoom steps narrow the layout viewport and reset restores it; a 400 KB download over a replaced destination logs <b>start</b> then <b>ok</b> with a matching md5; favicons for github.com, wikipedia.org and news.ycombinator.com load in the tab strip, rust-lang.org falls back. 36 tests · clippy clean</span></div>
+        </div>
+      </article>
+
+      <!-- PHASE 6 -->
+      <article class="phase optional">
+        <div class="rail">
+          <div class="code">06</div>
+          <div class="dur">4–5 days</div>
+          <div class="tag">Gate not met</div>
+        </div>
+        <div class="body">
+          <h3>The proxy, if it earns it</h3>
+          <p class="subtitle">Lane B. Do not start this without evidence.</p>
+          <ul class="work">
+            <li>Loopback hyper + rustls proxy behind a generated CA, wired via <code>with_proxy_config</code>.</li>
+            <li>Buys: query-param stripping on subresources, body substitution, scheme upgrade.</li>
+            <li><b>Entry gate:</b> name three sites where Lane A demonstrably failed to block something that
+                mattered. If you cannot, this phase does not happen.</li>
+          </ul>
+          <div class="yield">
+            <div class="eyebrow">The gate was run. It did not open.</div>
+            <p>
+              Full control of every request — bought with a certificate authority living in the user's trust
+              store, which is a permanent security liability for a marginal gain. My recommendation was that this
+              phase stays unbuilt. The gate now says the same thing with evidence rather than an opinion.
+            </p>
+            <p>
+              Eight ad-heavy sites were loaded in the running browser with an audit script that collected every
+              subresource the page actually requested, filtered it to known ad and tracker hosts, and re-tested
+              each one. <b>Zero tracker hosts appeared in the resource timing of any of them</b> — cnn.com,
+              forbes.com, dailymail.co.uk, weather.com, espn.com, speedtest.net and imdb.com each loaded 25–160
+              subresources, none of them from an ad or analytics host. ESPN's third parties were its own CDN and
+              a consent banner; IMDb's were Amazon's image hosts and its own GraphQL.
+            </p>
+            <p>
+              The first run of this audit produced a <em>failed control</em>: a no-cors fetch of
+              <code>https://doubleclick.net/</code> resolved instead of rejecting, which would have meant the
+              probe could not tell blocked from allowed and the zeros meant nothing. The control was wrong, not
+              the browser. EasyList targets ad-serving paths and subdomains, not the bare apex. Re-run against
+              real ad URLs, every one of <code>ad.doubleclick.net/ddm/ad/x</code>,
+              <code>pagead2.googlesyndication.com/pagead/js/adsbygoogle.js</code>,
+              <code>google-analytics.com/analytics.js</code>, <code>googletagmanager.com/gtm.js</code>,
+              <code>sb.scorecardresearch.com/beacon.js</code> and <code>ib.adnxs.com/ut/v3</code> was rejected,
+              while <code>example.com</code> and a local server resolved. A real <code>&lt;script&gt;</code> tag
+              pointed at adsbygoogle fired <code>onerror</code>.
+            </p>
+            <p>
+              <b>Not one site could be named, let alone three.</b> Phase 06 does not happen. The certificate
+              authority does not get generated, and nothing goes into anyone's trust store.
+            </p>
+          </div>
+          <div class="check"><span>Gate result →</span><span>0 of 3 required failures found across 8 ad-heavy sites. The proxy stays on the shelf.</span></div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="eyebrow">Where each capability stands, phase by phase</div>
+    <h2>Progression</h2>
+    <div class="matrix-wrap">
+      <table>
+        <caption>Planned state, not measurement. Nothing here is benchmarked until Phase 03 gives us the instrument.</caption>
+        <thead>
+          <tr>
+            <th scope="col" style="text-align:left">Capability</th>
+            <th scope="col" class="now">Now</th>
+            <th scope="col">00</th>
+            <th scope="col">01</th>
+            <th scope="col">02</th>
+            <th scope="col">03</th>
+            <th scope="col">04</th>
+            <th scope="col">05</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Tab hibernation &amp; LRU</th>
+            <td class="now"><span class="pip done"></span></td>
+            <td><span class="pip done"></span></td><td><span class="pip done"></span></td>
+            <td><span class="pip done"></span></td><td><span class="pip done"></span></td>
+            <td><span class="pip done"></span></td><td><span class="pip done"></span></td>
+          </tr>
+          <tr>
+            <th scope="row">URL sanitation</th>
+            <td class="now"><span class="pip broken"></span></td>
+            <td><span class="pip done"></span></td><td><span class="pip done"></span></td>
+            <td><span class="pip done"></span></td><td><span class="pip done"></span></td>
+            <td><span class="pip done"></span></td><td><span class="pip done"></span></td>
+          </tr>
+          <tr>
+            <th scope="row">Subresource blocking</th>
+            <td class="now"><span class="pip none"></span></td>
+            <td><span class="pip none"></span></td><td><span class="pip done"></span></td>
+            <td><span class="pip done"></span></td><td><span class="pip done"></span></td>
+            <td><span class="pip done"></span></td><td><span class="pip done"></span></td>
+          </tr>
+          <tr>
+            <th scope="row">Session restore</th>
+            <td class="now"><span class="pip none"></span></td>
+            <td><span class="pip none"></span></td><td><span class="pip none"></span></td>
+            <td><span class="pip done"></span></td><td><span class="pip done"></span></td>
+            <td><span class="pip done"></span></td><td><span class="pip done"></span></td>
+          </tr>
+          <tr>
+            <th scope="row">Measured memory ceiling</th>
+            <td class="now"><span class="pip none"></span></td>
+            <td><span class="pip none"></span></td><td><span class="pip none"></span></td>
+            <td><span class="pip none"></span></td><td><span class="pip done"></span></td>
+            <td><span class="pip done"></span></td><td><span class="pip done"></span></td>
+          </tr>
+          <tr>
+            <th scope="row">Page-runtime safety</th>
+            <td class="now"><span class="pip broken"></span></td>
+            <td><span class="pip partial"></span></td><td><span class="pip partial"></span></td>
+            <td><span class="pip partial"></span></td><td><span class="pip partial"></span></td>
+            <td><span class="pip done"></span></td><td><span class="pip done"></span></td>
+          </tr>
+          <tr>
+            <th scope="row">Browsing essentials</th>
+            <td class="now"><span class="pip none"></span></td>
+            <td><span class="pip none"></span></td><td><span class="pip none"></span></td>
+            <td><span class="pip none"></span></td><td><span class="pip none"></span></td>
+            <td><span class="pip none"></span></td><td><span class="pip done"></span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="legend">
+        <span><i class="pip done"></i> working</span>
+        <span><i class="pip partial"></i> partly working</span>
+        <span><i class="pip none"></i> absent</span>
+        <span><i class="pip broken"></i> present and harmful</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="eyebrow">What gets cut, and why</div>
+    <h2>The local CDN does not come back</h2>
+    <div class="cut">
+      <p>
+        It is tempting to fix the module rather than delete it — ship real jQuery and React bytes, rewrite CDN
+        URLs through the custom protocol, keep the latency win. Don't.
+      </p>
+      <p>
+        Substituted bytes fail <b>subresource integrity</b>. A script tag carrying
+        <code>integrity="sha384-…"</code> is checked against the bytes actually delivered, so the browser refuses
+        to execute your local copy — and SRI is precisely what security-conscious sites put on their CDN scripts.
+        You would be silently breaking the most careful sites on the web to save a few hundred milliseconds on
+        the least careful ones, while owning a version-matching problem forever. Phase 1's blocking gets you the
+        privacy outcome without any of that.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="eyebrow">After phase 05</div>
+    <h2>What you end up with</h2>
+    <div class="endstate">
+      <div>
+        <h3>A browser</h3>
+        <p>
+          Back/forward, find-in-page, downloads, zoom, bookmarks, favicons, context menus. Enough that a working
+          day inside it doesn't send you back to Safari.
+        </p>
+      </div>
+      <div>
+        <h3>That forgets on purpose</h3>
+        <p>
+          A hard ceiling on live WebViews, derived from the machine rather than hardcoded, with the rest of your
+          tabs hibernated to SQLite at zero resident cost — and restored exactly, including scroll and form
+          state, after a crash.
+        </p>
+      </div>
+      <div>
+        <h3>And blocks for real</h3>
+        <p>
+          EasyList and EasyPrivacy compiled into WebKit's own content-rule engine, running on every request, with
+          tracking parameters stripped from navigations and a live count of what it caught.
+        </p>
+      </div>
+      <div>
+        <h3>Measured, not claimed</h3>
+        <div class="spec">
+          <span><b>Live WebViews</b> — adaptive, capped</span>
+          <span><b>Dormant tabs</b> — 0 MB resident</span>
+          <span><b>RSS at 5 tabs</b> — published with method</span>
+          <span><b>Filter rules</b> — full EasyList + EasyPrivacy</span>
+          <span><b>Trust store</b> — untouched</span>
+          <span><b>Dependencies</b> — unchanged from today</span>
+        </div>
+      </div>
+    </div>
+    <p>
+      Nothing in Phases 0–5 adds a dependency to <code>Cargo.toml</code> beyond an objc2 binding, and Phase 0
+      removes more code than Phase 1 adds. The finished thing is smaller than the current one in every place
+      except the parts that do the work.
+    </p>
+  </section>
+
+  <footer>
+    <span>Plan rev 2 · phases 00–05 shipped</span>
+    <span>·</span>
+    <span>baseline: 3,465 LOC, 21 tests, clippy clean</span>
+    <span>·</span>
+    <span>wry 0.47.2 · adblock 0.8.12 · rusqlite 0.31</span>
+    <span>·</span>
+    <span>phases 00–05: 11–16 working days</span>
+  </footer>
+
+</div>
